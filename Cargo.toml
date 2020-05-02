@@ -1,6 +1,6 @@
 [package]
 name = "c-closures"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Jacob Kiesel <kieseljake@gmail.com"]
 edition = "2018"
 repository = "https://github.com/Xaeroxe/c-closures-rs"

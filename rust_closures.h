@@ -15,8 +15,8 @@ typedef struct Closure {
 /// Calls the inner code. The return value of this may have come from
 /// Rust, meaning you can not free it. However it must be freed. When
 /// you're done with the return value, pass it back to Rust with
-/// CleanReturnValue so that the memory isn't leaked. If you won't be
-/// using the return value, instead call CallWithNoReturn.
+/// `closure_release_return_value` so that the memory isn't leaked. If you won't be
+/// using the return value, instead call `closure_call_with_no_return`.
 void *closure_call(Closure * const self, void * const arg);
 
 /// Cleans up the value returned by calling this Closure. Do not attempt
