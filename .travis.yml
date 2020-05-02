@@ -1,0 +1,32 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+cache: cargo
+
+os:
+    - linux
+    - osx
+    - windows
+
+script:
+  - |
+      if [ ${TRAVIS_RUST_VERSION} == "stable" ]
+      then
+        export RUSTFLAGS="-D warnings"
+        rustup component add rustfmt
+        cargo fmt --version
+        cargo fmt --all -- --check
+      fi
+  - cargo build --verbose --all
+  - cargo test --verbose --all
+after_success:
+  - |
+      [ $TRAVIS_BRANCH = master ] &&
+      [ $TRAVIS_PULL_REQUEST = false ] &&
+      cargo publish --token ${CRATESIO_TOKEN}

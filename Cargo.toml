@@ -1,0 +1,18 @@
+[package]
+name = "c-closures"
+version = "0.1.0"
+authors = ["Jacob Kiesel <kieseljake@gmail.com"]
+edition = "2018"
+repository = "https://github.com/Xaeroxe/c-closures-rs"
+license = "MIT/Apache-2.0"
+documentation = "https://docs.rs/c-closures"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+backtrace = "0.3"
+log = "0.4"
+
+[build-dependencies]
+bindgen = "0.53"
+cc = "1.0"
