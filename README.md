@@ -1,5 +1,7 @@
 # c-closures [![Crates listing](https://img.shields.io/crates/v/c-closures.svg)](https://crates.io/crates/c-closures) [![Travis](https://travis-ci.com/Xaeroxe/c-closures-rs.svg?branch=master)](https://travis-ci.com/Xaeroxe/c-closures-rs)
 
+[Documentation](https://docs.rs/c-closures/)
+
 Provides a general purpose way for Rust closures to cross an FFI boundary into C/C++.
 
 # Contributing
