@@ -201,7 +201,7 @@ impl<T: Copy> FromClosureArgPointer for T {
 /// This macro provides a convenient way to do that. Please read the example,
 ///
 /// ```ignore
-/// use c_closures::{Closure, rebind_ref};
+/// use c_closures::{Closure, rebind_closure_ref};
 ///
 /// #[allow(dead_code, non_snake_case)]
 /// mod ffi {
