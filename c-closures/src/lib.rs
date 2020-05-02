@@ -4,7 +4,7 @@
 //! It provides support for any single argument signature, along with any return type, assuming
 //! both have valid representations in C/C++ and Rust.
 //!
-//! For an example, check out https://github.com/Xaeroxe/c-closures-rs/tree/master/example
+//! [Here's an example.](https://github.com/Xaeroxe/c-closures-rs/tree/master/example)
 //!
 //! # Safety concerns
 //!
@@ -198,7 +198,7 @@ impl<T: Copy> FromClosureArgPointer for T {
 /// Rebinds a reference to the `Closure` from this crate to a pointer to a `Closure` type defined externally.
 /// If you use bindgen to make bindings to C/C++ functions accepting this `Closure` type then the bindings won't
 /// be defined in terms of `c_closures`, instead your functions will want a pointer to your own `Closure` definition.
-/// This macro provides a convenient way to do that. Please read the example,
+/// This macro provides a convenient way to do that. Please read the example.
 ///
 /// ```ignore
 /// use c_closures::{Closure, rebind_closure_ref};
