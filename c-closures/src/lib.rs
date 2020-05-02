@@ -197,7 +197,7 @@ impl<T: Copy> FromClosureArgPointer for T {
 
 /// Rebinds a reference to the `Closure` from this crate to a pointer to a `Closure` type defined externally.
 /// If you use bindgen to make bindings to C/C++ functions accepting this `Closure` type then the bindings won't
-/// be defined in terms of `c_closures`, instead your functions will want a pointer to your own `Closure` definiton.
+/// be defined in terms of `c_closures`, instead your functions will want a pointer to your own `Closure` definition.
 /// This macro provides a convenient way to do that. Please read the example,
 ///
 /// ```ignore
