@@ -330,6 +330,6 @@ mod tests {
     #[should_panic]
     fn bad_ref_usage() {
         let mut c = Closure::fn_not_mut(|_: ()| ());
-        rebind_ref!(i32, &mut c);
+        rebind_closure_ref!(i32, &mut c);
     }
 }
