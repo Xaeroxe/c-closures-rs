@@ -29,5 +29,7 @@ after_success:
   - |
       [ $TRAVIS_BRANCH = master ] &&
       [ $TRAVIS_PULL_REQUEST = false ] &&
+      [ $TRAVIS_OS_NAME = linux ] &&
+      [ $TRAVIS_RUST_VERSION = stable ] &&
       cd c-closures &&
       cargo publish --token ${CRATESIO_TOKEN}
