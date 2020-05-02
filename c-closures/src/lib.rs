@@ -213,7 +213,7 @@ impl<T: Copy> FromClosureArgPointer for T {
 ///        x += 1;
 ///        println!("I've been called {} times", x);
 ///    });
-///    let c = rebind_ref!(ffi::Closure, &mut c);
+///    let c = rebind_closure_ref!(ffi::Closure, &mut c);
 ///    for i in 1..=30 {
 ///        println!("Considered calling closure {} times", i);
 ///        unsafe {
