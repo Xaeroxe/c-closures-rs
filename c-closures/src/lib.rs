@@ -4,6 +4,8 @@
 //! It provides support for any single argument signature, along with any return type, assuming
 //! both have valid representations in C/C++ and Rust.
 //!
+//! For an example, check out https://github.com/Xaeroxe/c-closures-rs/tree/master/example
+//!
 //! # Safety concerns
 //!
 //! Creating a `Closure` by itself can not cause undefined behavior, however the resulting
@@ -193,6 +195,45 @@ impl<T: Copy> FromClosureArgPointer for T {
     }
 }
 
+/// Rebinds a reference to the `Closure` from this crate to a pointer to a `Closure` type defined externally.
+/// If you use bindgen to make bindings to C/C++ functions accepting this `Closure` type then the bindings won't
+/// be defined in terms of `c_closures`, instead your functions will want a pointer to your own `Closure` definiton.
+/// This macro provides a convenient way to do that. Please read the example,
+///
+/// ```ignore
+/// use c_closures::{Closure, rebind_ref};
+///
+/// #[allow(dead_code, non_snake_case)]
+/// mod ffi {
+///    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+/// }
+///fn main() {
+///    let mut x = 0;
+///    let mut c = Closure::fn_mut(move |_: ()| {
+///        x += 1;
+///        println!("I've been called {} times", x);
+///    });
+///    let c = rebind_ref!(ffi::Closure, &mut c);
+///    for i in 1..=30 {
+///        println!("Considered calling closure {} times", i);
+///        unsafe {
+///            ffi::maybe_call(c);
+///        }
+///    }
+///}
+/// ```
+#[macro_export]
+macro_rules! rebind_closure_ref {
+    ($external_name:ty, $closure:expr) => {
+        // size_of here is a const fn, so this branch will be optimized out of existence.
+        if ::std::mem::size_of::<$external_name>() != ::std::mem::size_of::<$crate::Closure>() {
+            panic!("rebind_ref! macro external definition is not the same size as internal definition. This macro was probably used incorrectly.")
+        } else {
+            $closure as *mut $crate::Closure as *mut $external_name
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -283,5 +324,12 @@ mod tests {
             closure_release(&mut closure);
             assert_eq!(Arc::strong_count(&value), 1);
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn bad_ref_usage() {
+        let mut c = Closure::fn_not_mut(|_: ()| ());
+        rebind_ref!(i32, &mut c);
     }
 }

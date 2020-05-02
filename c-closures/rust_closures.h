@@ -1,3 +1,6 @@
+#ifndef RUST_CLOSURES_H
+#define RUST_CLOSURES_H
+
 /// A general purpose closure type defined in C code which can be created in Rust.
 typedef struct Closure {
   /// Directions to call the contained closure
@@ -29,3 +32,4 @@ void closure_call_with_no_return(Closure * const self, void * const arg);
 /// Release data associated with this closure, must be called when done with
 /// Closure to avoid memory leaking.
 void closure_release(Closure * const self);
+#endif

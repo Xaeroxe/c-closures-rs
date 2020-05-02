@@ -1,0 +1,14 @@
+[package]
+name = "example"
+version = "0.1.0"
+authors = ["jacobkiesel <jacob.kiesel@vivint.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+c-closures = { path = "../c-closures" }
+
+[build-dependencies]
+bindgen = "0.53"
+cc = "1.0"
