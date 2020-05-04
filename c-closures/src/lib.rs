@@ -378,4 +378,12 @@ mod tests {
         let mut c = Closure::fn_not_mut(|_: ()| ());
         c.rebind_closure_mut::<NotAClosure>();
     }
+
+    // Validates that calling this macro doesn't result in leaky definitions. Items
+    // defined in the macro should not exist outside of it.
+    #[test]
+    fn two_in_scope() {
+        rebind_closure!(Closure, Closure::new_noop());
+        rebind_closure!(Closure, Closure::new_noop());
+    }
 }
