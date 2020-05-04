@@ -21,7 +21,7 @@ pub fn c_closure_header_include_dir() -> PathBuf {
 
 /// Extends the `bindgen::Builder` with a function you'll need to call on it when generating bindings to
 /// your own C/C++ code that include "rust_closures.h"
-/// 
+///
 /// `fully_qualified_closure` is the complete path to the generated `Closure` type. Probably just "Closure"
 /// but `enable_cxx_namespaces` can change that value.
 pub trait BindgenBuilderExt: Sized {
@@ -30,10 +30,14 @@ pub trait BindgenBuilderExt: Sized {
 
 impl BindgenBuilderExt for bindgen::Builder {
     fn c_closures_enhancements(self, fully_qualified_closure: &str) -> Self {
-        self.raw_line(format!("impl ::c_closures::ClosureMarkerTrait for {} {{}}", fully_qualified_closure))
-            .raw_line(
-                format!("impl Drop for {} {{ fn drop(&mut self) {{ unsafe {{ closure_release(self) }} }} }}", fully_qualified_closure),
-            )
-            .clang_arg(format!("-I{}", c_closure_header_include_dir().display()))
+        self.raw_line(format!(
+            "impl ::c_closures::ClosureMarkerTrait for {} {{}}",
+            fully_qualified_closure
+        ))
+        .raw_line(format!(
+            "impl Drop for {} {{ fn drop(&mut self) {{ unsafe {{ closure_release(self) }} }} }}",
+            fully_qualified_closure
+        ))
+        .clang_arg(format!("-I{}", c_closure_header_include_dir().display()))
     }
 }
