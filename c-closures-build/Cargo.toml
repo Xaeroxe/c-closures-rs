@@ -1,6 +1,6 @@
 [package]
 name = "c-closures-build"
-version = "0.2.0" # Hey don't forget to update the version check in c_closure_header_include_dir
+version = "0.3.0" # Hey don't forget to update the version check in c_closure_header_include_dir
 authors = ["Jacob Kiesel <kieseljake@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/Xaeroxe/c-closures-rs"

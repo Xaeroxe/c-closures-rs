@@ -14,7 +14,7 @@ fn main() {
         .generate_comments(true)
         .derive_copy(false)
         .generate_inline_functions(false)
-        .c_closures_enhancements() // c_closures custom extension to the bindgen builder
+        .c_closures_enhancements("Closure") // c_closures custom extension to the bindgen builder
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.
