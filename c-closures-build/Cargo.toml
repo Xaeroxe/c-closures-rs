@@ -1,0 +1,15 @@
+[package]
+name = "c-closures-build"
+version = "0.2.0" # Hey don't forget to update the version check in c_closure_header_include_dir
+authors = ["Jacob Kiesel <kieseljake@gmail.com>"]
+edition = "2018"
+repository = "https://github.com/Xaeroxe/c-closures-rs"
+license = "MIT/Apache-2.0"
+documentation = "https://docs.rs/c-closures-build"
+description = "Build script aids for use with `c-closures` crate. Intended to be used with a matching version number of c-closures."
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cargo_metadata = "0.9"
+bindgen = "0.53"

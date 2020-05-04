@@ -1,3 +1,4 @@
+use c_closures_build::{c_closure_header_include_dir, BindgenBuilderExt};
 use std::{env, path::PathBuf};
 
 fn main() {
@@ -13,6 +14,7 @@ fn main() {
         .generate_comments(true)
         .derive_copy(false)
         .generate_inline_functions(false)
+        .c_closures_enhancements() // c_closures custom extension to the bindgen builder
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.
@@ -22,5 +24,8 @@ fn main() {
     bindings
         .write_to_file(PathBuf::from(env::var("OUT_DIR").unwrap()).join("bindings.rs"))
         .expect("Couldn't write bindings!");
-    cc::Build::new().file("example.c").compile("example");
+    cc::Build::new()
+        .include(c_closure_header_include_dir())
+        .file("example.c")
+        .compile("example");
 }

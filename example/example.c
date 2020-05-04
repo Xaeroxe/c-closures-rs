@@ -1,6 +1,4 @@
-// The include path is written this way in the example so I can avoid duplicating files,
-// but you may want to keep a local copy of this header when using this yourself.
-#include "../c-closures/rust_closures.h"
+#include "rust_closures.h"
 #include "example.h"
 #include <stdio.h>
 #include <stdlib.h>
