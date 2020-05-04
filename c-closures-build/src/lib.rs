@@ -30,7 +30,10 @@ pub trait BindgenBuilderExt: Sized {
 
 impl BindgenBuilderExt for bindgen::Builder {
     fn c_closures_enhancements(self, fully_qualified_closure: &str) -> Self {
-        let closure_path = fully_qualified_closure.rmatch_indices("::").next().map(|i| &fully_qualified_closure[0..i.0]);
+        let closure_path = fully_qualified_closure
+            .rmatch_indices("::")
+            .next()
+            .map(|i| &fully_qualified_closure[0..i.0]);
         self.raw_line(format!(
             "impl ::c_closures::ClosureMarkerTrait for {} {{}}",
             fully_qualified_closure
@@ -38,7 +41,9 @@ impl BindgenBuilderExt for bindgen::Builder {
         .raw_line(format!(
             "impl Drop for {} {{ fn drop(&mut self) {{ unsafe {{ {}closure_release(self) }} }} }}",
             fully_qualified_closure,
-            closure_path.map(|s| format!("{}::", s)).unwrap_or_else(String::default),
+            closure_path
+                .map(|s| format!("{}::", s))
+                .unwrap_or_else(String::default),
         ))
         .clang_arg(format!("-I{}", c_closure_header_include_dir().display()))
     }
