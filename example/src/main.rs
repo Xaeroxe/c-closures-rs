@@ -1,4 +1,4 @@
-use c_closures::{rebind_closure_ref, Closure};
+use c_closures::Closure;
 
 #[allow(dead_code, non_snake_case)]
 mod ffi {
@@ -11,7 +11,7 @@ fn main() {
         x += 1;
         println!("I've been called {} times", x);
     });
-    let c = rebind_closure_ref!(ffi::Closure, &mut c);
+    let c = c.rebind_closure_mut();
     for i in 1..=30 {
         println!("Considered calling closure {} times", i);
         unsafe {

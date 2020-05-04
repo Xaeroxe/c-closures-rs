@@ -4,9 +4,9 @@
 /// A general purpose closure type defined in C code which can be created in Rust.
 typedef struct Closure {
   /// Directions to call the contained closure
-  void *(*function)(void * const data, void * const arg);
+  void *(*function)(void * data, void * const arg);
   /// Rust user data for this closure.
-  void * const data;
+  void * data;
   /// The data pointer may require personalized delete instructions, we can
   /// access those here.
   void (*delete_data)(void *data);

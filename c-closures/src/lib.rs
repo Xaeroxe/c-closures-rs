@@ -42,11 +42,7 @@
 
 #![allow(non_snake_case)]
 
-use std::{
-    ffi::c_void,
-    mem::{size_of, zeroed},
-    ptr::null_mut,
-};
+use std::{ffi::c_void, mem::size_of, process::abort, ptr::null_mut};
 
 use backtrace::Backtrace;
 use log::error;
@@ -135,9 +131,8 @@ impl Closure {
         Self::fn_mut(move |arg| match f.take() {
             Some(f) => f(arg),
             None => {
-                error!("Function marked as single-use was called more than once, the closure will not be called as that would segfault. Returning zeroed memory. This may cause undefined behavior.");
-                // This is less than an ideal for a number of reasons, if you can think of a better way to handle this, contributions are welcome.
-                unsafe { zeroed() }
+                error!("Function marked as single-use was called more than once, the closure will not be called as that would segfault. Aborting.");
+                abort()
             }
         })
     }
@@ -151,6 +146,37 @@ impl Closure {
             function: None,
             delete_data: None,
             delete_ret: None,
+        }
+    }
+
+    /// Similar to the `rebind_closure` macro, except this operates on immutable references instead.
+    pub fn rebind_closure_ref<C: ClosureMarkerTrait>(&self) -> &C {
+        // size_of here is a const fn, so this branch will be optimized out of existence.
+        if size_of::<C>() != size_of::<Self>() {
+            panic!("rebind_closure_ref external definition is not the same size as internal definition. \
+            `ClosureMarkerTrait` is probably implemented incorrectly. This also might be a bug in c-closures.")
+        } else {
+            unsafe { &*(self as *const Self as *const C) }
+        }
+    }
+
+    /// Similar to the `rebind_closure` macro, except this operates on mutable references instead.
+    pub fn rebind_closure_mut<C: ClosureMarkerTrait>(&mut self) -> &mut C {
+        // size_of here is a const fn, so this branch will be optimized out of existence.
+        if size_of::<C>() != size_of::<Self>() {
+            panic!("rebind_closure_mut external definition is not the same size as internal definition. \
+            `ClosureMarkerTrait` is probably implemented incorrectly. This also might be a bug in c-closures.")
+        } else {
+            unsafe { &mut *(self as *mut Self as *mut C) }
+        }
+    }
+}
+
+// In the unlikely event a `Closure` is released while on the Rust side, we need to dispose of it correctly.
+impl Drop for Closure {
+    fn drop(&mut self) {
+        unsafe {
+            closure_release(self);
         }
     }
 }
@@ -180,6 +206,14 @@ unsafe extern "C" fn delete_me<T>(t: *mut c_void) {
     Box::from_raw(t as *mut T);
 }
 
+/// This trait identifies instances of the `Closure` type from `rust_closures.h`. In Rust land, there will be
+/// multiple instances of this type that we need to be able to cast from one to another. This trait helps us
+/// determine which of these casts are safe. To implement this use `BindgenBuilderExt::c_closures_enhancements`
+/// from `c-closures-build` on your `bindgen::Builder`.
+pub trait ClosureMarkerTrait {}
+
+impl ClosureMarkerTrait for Closure {}
+
 /// Provides a general purpose way to deref a structure from a C void pointer. Auto implemented for `Copy` types.
 pub trait FromClosureArgPointer {
     /// # Safety
@@ -195,41 +229,43 @@ impl<T: Copy> FromClosureArgPointer for T {
     }
 }
 
-/// Rebinds a reference to the `Closure` from this crate to a pointer to a `Closure` type defined externally.
+/// Rebinds a `Closure` from this crate to a `Closure` type defined externally.
 /// If you use bindgen to make bindings to C/C++ functions accepting this `Closure` type then the bindings won't
-/// be defined in terms of `c_closures`, instead your functions will want a pointer to your own `Closure` definition.
-/// This macro provides a convenient way to do that. Please read the example.
+/// be defined in terms of `c_closures`, instead your functions will want an instance of your own `Closure` definition.
+/// This macro provides a convenient way to rebind them.
 ///
-/// ```ignore
-/// use c_closures::{Closure, rebind_closure_ref};
-///
-/// #[allow(dead_code, non_snake_case)]
+/// ```
+/// use c_closures::{Closure, rebind_closure};
 /// mod ffi {
-///    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+///     // Import of bindgen generated closure here.
+///     // i.e. include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+/// # #[repr(C)]
+/// # pub struct Closure {
+/// #  inner: [u8; std::mem::size_of::<c_closures::Closure>()],
+/// # }
+/// # impl c_closures::ClosureMarkerTrait for Closure {}
 /// }
-///fn main() {
-///    let mut x = 0;
-///    let mut c = Closure::fn_mut(move |_: ()| {
-///        x += 1;
-///        println!("I've been called {} times", x);
-///    });
-///    let c = rebind_closure_ref!(ffi::Closure, &mut c);
-///    for i in 1..=30 {
-///        println!("Considered calling closure {} times", i);
-///        unsafe {
-///            ffi::maybe_call(c);
-///        }
-///    }
-///}
+/// # fn main () {
+/// // elsewhere
+/// let c = rebind_closure!(ffi::Closure, Closure::fn_not_mut(|_: ()| 2 + 2));
+/// # }
 /// ```
 #[macro_export]
-macro_rules! rebind_closure_ref {
+macro_rules! rebind_closure {
     ($external_name:ty, $closure:expr) => {
-        // size_of here is a const fn, so this branch will be optimized out of existence.
-        if ::std::mem::size_of::<$external_name>() != ::std::mem::size_of::<$crate::Closure>() {
-            panic!("rebind_ref! macro external definition is not the same size as internal definition. This macro was probably used incorrectly.")
-        } else {
-            $closure as *mut $crate::Closure as *mut $external_name
+        { // Additional scope added to prevent leaking of the fn definition.
+            fn is_closure_type<C: $crate::ClosureMarkerTrait>() {}
+
+            // size_of here is a const fn, so this branch will be optimized out of existence.
+            if ::std::mem::size_of::<$external_name>() != ::std::mem::size_of::<$crate::Closure>() {
+                panic!("rebind_ref! macro external definition is not the same size as internal definition. \
+                `ClosureMarkerTrait` is probably implemented incorrectly.")
+            } else {
+                is_closure_type::<$external_name>(); // Intentionally creates a compiler error if the marker trait isn't implemented.
+                unsafe {
+                    ::std::mem::transmute::<$crate::Closure, $external_name>($closure)
+                }
+            }
         }
     };
 }
@@ -286,10 +322,9 @@ mod tests {
             assert_eq!(<i32 as FromClosureArgPointer>::from_arg_ptr(ret), 12);
             closure_release_return_value(&mut closure, ret);
 
-            // The call fails, zeroed memory is returned.
-            let ret = closure_call(&mut closure, &mut 2 as *mut i32 as _);
-            assert_eq!(<i32 as FromClosureArgPointer>::from_arg_ptr(ret), zeroed());
-            closure_release_return_value(&mut closure, ret);
+            // I'd love to verify that a subsequent call aborts, but it's non-trivial
+            // to put that into a test suite. We'll address this if it ever becomes a problem
+            // that this testing isn't done.
             closure_release(&mut closure);
         }
     }
@@ -326,10 +361,21 @@ mod tests {
         }
     }
 
+    struct NotAClosure;
+
+    impl ClosureMarkerTrait for NotAClosure {}
+
     #[test]
     #[should_panic]
     fn bad_ref_usage() {
+        let c = Closure::fn_not_mut(|_: ()| ());
+        c.rebind_closure_ref::<NotAClosure>();
+    }
+
+    #[test]
+    #[should_panic]
+    fn bad_mut_usage() {
         let mut c = Closure::fn_not_mut(|_: ()| ());
-        rebind_closure_ref!(i32, &mut c);
+        c.rebind_closure_mut::<NotAClosure>();
     }
 }

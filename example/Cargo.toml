@@ -12,3 +12,4 @@ c-closures = { path = "../c-closures" }
 [build-dependencies]
 bindgen = "0.53"
 cc = "1.0"
+c-closures-build = { path = "../c-closures-build" }

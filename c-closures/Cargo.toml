@@ -1,12 +1,12 @@
 [package]
 name = "c-closures"
-version = "0.1.5"
-authors = ["Jacob Kiesel <kieseljake@gmail.com"]
+version = "0.2.0"
+authors = ["Jacob Kiesel <kieseljake@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/Xaeroxe/c-closures-rs"
 license = "MIT/Apache-2.0"
 documentation = "https://docs.rs/c-closures"
-description = "General purpose way for Rust closures to cross an FFI boundary into C/C++."
+description = "General purpose way for Rust closures to cross an FFI boundary into C/C++. Use with `c-closures-build`."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
