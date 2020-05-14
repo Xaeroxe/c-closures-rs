@@ -93,4 +93,12 @@ mod tests {
             assert_eq!(Arc::strong_count(&value), 1);
         }
     }
+
+    #[test]
+    fn fn_noop() {
+        let mut closure = VoidVoidClosure::new_noop();
+        unsafe {
+            VoidVoid_closure_call(&mut closure);
+        }
+    }
 }
