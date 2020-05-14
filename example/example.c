@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int maybe_call(Closure *closure) {
+int maybe_call(VoidVoidClosure *closure) {
     if (rand() % 2 == 1) {
-        closure_call_with_no_return(closure, 0);
+        VoidVoid_closure_call(closure);
         return 1;
     }
     return 0;
