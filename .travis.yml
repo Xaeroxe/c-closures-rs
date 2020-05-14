@@ -31,7 +31,5 @@ after_success:
       [ $TRAVIS_PULL_REQUEST = false ] &&
       [ $TRAVIS_OS_NAME = linux ] &&
       [ $TRAVIS_RUST_VERSION = stable ] &&
-      cd c-closures &&
-      cargo publish --token ${CRATESIO_TOKEN} &&
-      cd ../c-closures-build &&
+      cd c-closures-build &&
       cargo publish --token ${CRATESIO_TOKEN}
