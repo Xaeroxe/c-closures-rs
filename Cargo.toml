@@ -1,2 +1,2 @@
 [workspace]
-members = ["c-closures", "c-closures-build", "example"]
+members = ["c-closures-build", "example"]
