@@ -96,9 +96,9 @@ that.<sup>1</sup> Do not attempt to delete Rust memory allocations with anything
 other than these functions, Rust may not be using the same memory allocator as
 C, meaning they have no common language for memory allocation operations.
 
-<sup>1. Types which don't have a Rust `std::ops::Drop` implementation don't
+<sup>1. Types which have a Rust `std::marker::Copy` implementation don't
 necessarily need to be released, but if there's any doubt in your mind about
-whether such an implementation exists, you should assume it does exist.</sup>
+whether such an implementation exists, you should assume it does not exist.</sup>
 
 Alright great so now we have a type we can expose in our C function signatures
 and types that represent arbitrary Rust closures, and we have facilities to
