@@ -114,16 +114,13 @@ comes in! It provides two functions of use to you here.
 
 * `enhance_closure_bindings` - The powerhouse of the operation. This function
   analyzes Rust code, finds `*Closure` definitions, and enhances them with a few
-
-construction functions for use in Rust.
+  construction functions for use in Rust.
 
 * `c_closure_header_include_dir` - This function provides a path containing
   `rust_closures.h` , which is useful when compiling the C/C++ code from a
-  `build.rs`
-
-script. If I were altering a `bindgen` 0.53 generator with this function I'd do
-it like so:
-`.clang_arg(format!("-I{}", c_closure_header_include_dir().display()))` .
+  `build.rs` script. If I were altering a `bindgen` 0.53 generator with this
+  function I'd do it like so:
+  `.clang_arg(format!("-I{}", c_closure_header_include_dir().display()))`.
 
 ### Construction Functions
 
@@ -131,25 +128,19 @@ Here's the different construction functions provided by our enhancements.
 
 * `fn_mut` - Accepts an `FnMut` Rust closure and transforms it into an instance
   of this `*Closure` type. If you're sure this will never be called by multiple
-  threads
-
-in C/C++ and you need to call it multiple times this is the function you should
-prefer.
+  threads in C/C++ and you need to call it multiple times this is the function
+  you should prefer.
 
 * `fn_not_mut` - Sorry, `fn` is a keyword in Rust, so we get this silly name.
   This accepts an `Fn` Rust closure. This is the preferred function to use if
-  the C/C++
-
-code may be calling it from multiple threads.
+  the C/C++ code may be calling it from multiple threads.
 
 * `fn_once` - This accepts an `FnOnce` Rust closure, it is the most powerful and
   most dangerous construction function. It places very few restrictions on what
-  the
+  the Rust closure can capture, and what it does with that information. However
+  if called more than once, this `*Closure` will cause your program to `abort()`.
 
-Rust closure can capture, and what it does with that information. However if
-called more than once, this `*Closure` will cause your program to `abort()` .
-
-* `new_noop` - Only available for types defined with `CLOSURE_DEF_VOID_RET` .
+* `new_noop` - Only available for types defined with `CLOSURE_DEF_VOID_RET`.
   This `*Closure` will when called, do nothing.
 
 ## Conclusion
