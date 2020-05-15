@@ -61,24 +61,21 @@ pub fn enhance_closure_bindings(rust_code: &str) -> String {
     for tree in tree.items.iter_mut() {
         new_enhancements.extend(call_recurse(tree, &mut |item| {
             let mut enhance = vec![];
-            match item {
-                Item::ForeignMod(foreigners) => {
-                    for foreign_item in &mut foreigners.items {
-                        if let ForeignItem::Fn(function) = foreign_item {
-                            let function_name = function.sig.ident.to_string();
-                            if function_name.ends_with(SPECIAL_FN_SUFFIX) {
-                                let closure_name = (&function_name
-                                    [0..(function_name.len() - SPECIAL_FN_SUFFIX.len())])
-                                    .to_string();
-                                enhance.push(ClosureDefinition {
-                                    name: closure_name,
-                                    signature: function.sig.clone(),
-                                });
-                            }
+            if let Item::ForeignMod(foreigners) = item {
+                for foreign_item in &mut foreigners.items {
+                    if let ForeignItem::Fn(function) = foreign_item {
+                        let function_name = function.sig.ident.to_string();
+                        if function_name.ends_with(SPECIAL_FN_SUFFIX) {
+                            let closure_name = (&function_name
+                                [0..(function_name.len() - SPECIAL_FN_SUFFIX.len())])
+                                .to_string();
+                            enhance.push(ClosureDefinition {
+                                name: closure_name,
+                                signature: function.sig.clone(),
+                            });
                         }
                     }
                 }
-                _ => {}
             }
             enhance.iter().flat_map(gen_closure_fns).collect()
         }));
@@ -91,7 +88,7 @@ pub fn enhance_closure_bindings(rust_code: &str) -> String {
         .spawn()
     {
         {
-            if let Some(mut input) = rust_fmt_process.stdin.as_mut().map(|s| BufWriter::new(s)) {
+            if let Some(mut input) = rust_fmt_process.stdin.as_mut().map(BufWriter::new) {
                 let _ = input.write_all(tokenified_source.as_bytes());
             }
         }
@@ -114,18 +111,15 @@ pub fn enhance_closure_bindings(rust_code: &str) -> String {
 fn call_recurse<F: FnMut(&mut Item) -> Vec<Item>>(item: &mut Item, f: &mut F) -> Vec<Item> {
     let mut enhancements = vec![];
     enhancements.extend(f(item));
-    match item {
-        Item::Mod(mmod) => {
-            if let Some(t) = mmod.content.as_mut() {
-                let new_enhancements =
-                    t.1.iter_mut()
-                        .flat_map(|item| call_recurse(item, f))
-                        .collect::<Vec<_>>();
-                t.1.extend(new_enhancements);
-            }
+    if let Item::Mod(mmod) = item {
+        if let Some(t) = mmod.content.as_mut() {
+            let new_enhancements =
+                t.1.iter_mut()
+                    .flat_map(|item| call_recurse(item, f))
+                    .collect::<Vec<_>>();
+            t.1.extend(new_enhancements);
         }
-        _ => {}
-    };
+    }
     enhancements
 }
 
@@ -155,23 +149,12 @@ fn gen_closure_fns(
         .zip(arg_idents.iter())
         .map(|(arg, ident)| quote!(#ident: #arg))
         .collect::<Vec<_>>();
-    let mut has_return_value = true;
-    let return_type = match &signature.output {
-        ReturnType::Default => {
-            has_return_value = false;
-            Type::Verbatim(quote!(()))
-        }
-        ReturnType::Type(_, ref ty) => (**ty).clone(),
-    }
-    .to_token_stream();
+    let (has_return_value, return_type) = match &signature.output {
+        ReturnType::Default => (false, Type::Verbatim(quote!(()))),
+        ReturnType::Type(_, ref ty) => (true, (**ty).clone()),
+    };
     let delete_ret = if has_return_value {
         quote!(delete_ret: Some(Self::drop_me::<#return_type>),)
-    } else {
-        quote!()
-    };
-
-    let delete_none = if has_return_value {
-        quote!(delete_ret: None)
     } else {
         quote!()
     };
@@ -207,7 +190,6 @@ fn gen_closure_fns(
                     data: ::#std_or_core::ptr::null_mut(),
                     function: None,
                     delete_data: None,
-                    #delete_none
                 }
             }
         }
@@ -228,7 +210,7 @@ fn gen_closure_fns(
 
                     unsafe extern "C" fn drop_my_box<T>(t: *mut ::#std_or_core::ffi::c_void) {
                         // Drop is implicit
-                        #std_or_alloc::boxed::Box::<T>::from_raw(t as *mut T);
+                        ::#std_or_alloc::boxed::Box::<T>::from_raw(t as *mut T);
                     }
 
                     unsafe extern "C" fn drop_me<T>(_t: T) {
@@ -244,7 +226,7 @@ fn gen_closure_fns(
                         Function: FnMut(#(#args),*) -> #return_type,
                     {
                         Self {
-                            data: #std_or_alloc::boxed::Box::into_raw(#std_or_alloc::boxed::Box::new(f)) as *mut ::#std_or_core::ffi::c_void,
+                            data: ::#std_or_alloc::boxed::Box::into_raw(::#std_or_alloc::boxed::Box::new(f)) as *mut ::#std_or_core::ffi::c_void,
                             function: Some(Self::f_wrapper::<Function>),
                             delete_data: Some(Self::drop_my_box::<Function>),
                             #delete_ret
@@ -260,7 +242,7 @@ fn gen_closure_fns(
                         Function: Fn(#(#args),*) -> #return_type,
                     {
                         Self {
-                            data: #std_or_alloc::boxed::Box::into_raw(#std_or_alloc::boxed::Box::new(f)) as *mut ::#std_or_core::ffi::c_void,
+                            data: ::#std_or_alloc::boxed::Box::into_raw(::#std_or_alloc::boxed::Box::new(f)) as *mut ::#std_or_core::ffi::c_void,
                             function: Some(Self::f_wrapper::<Function>),
                             delete_data: Some(Self::drop_my_box::<Function>),
                             #delete_ret
