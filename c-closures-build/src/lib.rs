@@ -142,7 +142,7 @@ fn gen_closure_fns(
         .map(|a| a.to_token_stream())
         .collect::<Vec<_>>();
     let arg_idents = (0..args.len())
-        .map(|i| format_ident!("p{}", i))
+        .map(|i| format_ident!("_p{}", i))
         .collect::<Vec<_>>();
     let arg_ident_pairs = args
         .iter()
@@ -186,11 +186,7 @@ fn gen_closure_fns(
         quote! {
             /// Constructs a new instance of this class that when called does nothing.
             pub fn new_noop() -> Self {
-                Self {
-                    data: ::#std_or_core::ptr::null_mut(),
-                    function: None,
-                    delete_data: None,
-                }
+                Self::fn_not_mut(|#(#arg_idents),*| ())
             }
         }
     };

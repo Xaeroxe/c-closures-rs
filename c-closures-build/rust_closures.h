@@ -117,9 +117,6 @@ typedef struct definition_name##Closure { \
  `<closure_name>_closure_release_return_value` so that the memory isn't leaked. If you won't be \
  using the return value, instead call `<closure_name>_closure_call_with_no_return`. */ \
 void definition_name##_closure_call(definition_name##Closure * const self _ARGIFY(__VA_ARGS__))  {\
-  if(self->function == 0 || self->data == 0) { \
-    return; \
-  } \
   (self->function)(self->data _EVERY_OTHER(__VA_ARGS__)); \
 } \
 \
