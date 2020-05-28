@@ -101,4 +101,14 @@ mod tests {
             VoidVoid_closure_call(&mut closure);
         }
     }
+
+    #[test]
+    fn fn_closure_returning_closure() {
+        let mut closure = IntVoidClosureFactoryClosure::fn_mut(|| IntVoidClosure::fn_mut(|| 2 + 2));
+        unsafe {
+            let mut sub_closure = IntVoidClosureFactory_closure_call(&mut closure);
+            assert_eq!(IntVoid_closure_call(&mut sub_closure), 4);
+            IntVoidClosureFactory_closure_release_return_value(&mut closure, sub_closure);
+        }
+    }
 }
