@@ -23,10 +23,12 @@ signatures. The first is `CLOSURE_DEF` , which is used to define `*Closure`
 types with a non-void return type. It's usage is as such
 
 ``` C
-CLOSURE_DEF(<SIGNATURE NAME>, <RETURN TYPE>, <TYPE OF FIRST CLOSURE ARG>, <NAME OF FIRST CLOSURE ARG>, <..ADDITIONAL ARGS>)
+CLOSURE_DEF(<SIGNATURE NAME>, <RETURN TYPE>, <RETURN TYPE NAME>, <TYPE OF FIRST CLOSURE ARG>, <NAME OF FIRST CLOSURE ARG>, <..ADDITIONAL ARGS>)
 ```
 
-The first two parameters to this macro are required, subsequent arguments are optional.
+The first three parameters to this macro are required, subsequent arguments are optional.
+
+The return type name is used as the prefix of the function to drop the return value. It should only contain characters legal in a C function name.
 
 The second macro this crate provides is `CLOSURE_DEF_VOID_RET` which is useful
 for `*Closure` types you don't actually need anything returned from. It's usage
@@ -46,52 +48,53 @@ parameters, consider instead using `VoidVoidClosure` which is defined in
 Here's the expansion of the macro for a simple signature.
 
 ``` C
-CLOSURE_DEF(IntInt, int, int, p1)
+CLOSURE_DEF(IntInt, int, Int, int, p1)
 ```
 
 ``` C
-typedef struct IntIntClosure {
-  int (*function)(void* data, int p1);
-  void* data;
-  void (*delete_data)(void * data);
-  void (*delete_ret)(int ret);
+typedef struct IntIntClosure
+{
+	int(*function)(void *data _ARGIFY(int, p1));
+	void *data;
+	void(*delete_data)(void *data);
 } IntIntClosure;
 
-int IntInt_closure_call(IntIntClosure* const self, int p1) {
-  return (self -> function)(self -> data, p1);
+int IntInt_closure_call(IntIntClosure *const self _ARGIFY(int, p1))
+{
+	return (self->function)(self->data _EVERY_OTHER(int, p1));
 }
 
-void IntInt_closure_release_return_value(IntIntClosure* const self, int ret) {
-  if (self -> delete_ret != 0) {
-    (self -> delete_ret)(ret);
-  }
+void Int_release_rust_return_value(int ret); // Defined in Rust later.
+
+void IntInt_closure_call_with_no_return(IntIntClosure *const self _ARGIFY(int, p1))
+{
+	Int_release_rust_return_value(IntInt_closure_call(self _EVERY_OTHER(int, p1)));
 }
 
-void IntInt_closure_call_with_no_return(IntIntClosure* const self, int p1) {
-  IntInt_closure_release_return_value(self, IntInt_closure_call(self, p1));
-}
-
-void IntInt_closure_release(IntIntClosure* const self) {
-  if (self -> delete_data != 0 && self -> data != 0) {
-    (self -> delete_data)(self -> data);
-    self -> delete_data = 0;
-    self -> data = 0;
-  }
+void IntInt_closure_release(IntIntClosure *const self)
+{
+	if (self->delete_data != 0 && self->data != 0)
+	{
+		(self->delete_data)(self->data);
+		self->delete_data = 0;
+		self->data = 0;
+	}
 }
 ```
 
-So for this expansion you get a struct, called `IntIntClosure` , and four
-functions, each prefixed with the name `IntInt` . If you instead use
-`CLOSURE_DEF_VOID_RET` then `*_closure_release_return_value` and
-`*_closure_call_with_no_return` are omitted as those functions are extraneous
-for a `void` return type.
+So for this expansion you get a struct, called `IntIntClosure`, and four
+functions, three of which are prefixed with the name `IntInt`. One function,
+`*_release_rust_return_value` is left undefined. Rust will define it later.
+If you instead use `CLOSURE_DEF_VOID_RET` then `*_release_rust_return_value`
+and `*_closure_call_with_no_return` are omitted as those functions are
+extraneous for a `void` return type.
 
 Creation of the struct is handled in Rust, we'll get to that later. Once you
 have the struct it contains handles to Rust data, and depending on your
 signature, may generate handles to Rust data when called. These handles need to
 be cleaned up when we're done with them. When you're done with the `*Closure`
 type, you'll need to call `*_closure_release` on it, and when you're done with
-the return value you'll need to call `*_closure_release_return_value` on
+the return value you'll need to call `*_release_rust_return_value` on
 that.<sup>1</sup> Do not attempt to delete Rust memory allocations with anything
 other than these functions, Rust may not be using the same memory allocator as
 C, meaning they have no common language for memory allocation operations.

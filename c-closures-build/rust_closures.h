@@ -52,7 +52,7 @@
 
 #define _ARGIFY(...) _GET_NTH_ARG(__VA_ARGS__, _ARGIFY32, _ARGIFY31, _ARGIFY30, _ARGIFY29, _ARGIFY28, _ARGIFY27, _ARGIFY26, _ARGIFY25, _ARGIFY24, _ARGIFY23, _ARGIFY22, _ARGIFY21, _ARGIFY20, _ARGIFY19, _ARGIFY18, _ARGIFY17, _ARGIFY16, _ARGIFY15, _ARGIFY14, _ARGIFY13, _ARGIFY12, _ARGIFY11, _ARGIFY10, _ARGIFY9, _ARGIFY8, _ARGIFY7, _ARGIFY6, _ARGIFY5, _ARGIFY4, _ARGIFY3, _ARGIFY2, _ARGIFY1, _ARGIFY0)(__VA_ARGS__)
 
-#define CLOSURE_DEF(definition_name, return_type, ...)  \
+#define CLOSURE_DEF(definition_name, return_type, return_type_name, ...)  \
 /* A user defined closure type from C code which can be created in Rust. */ \
 typedef struct definition_name##Closure { \
   /* Directions to call the contained closure */ \
@@ -62,9 +62,6 @@ typedef struct definition_name##Closure { \
   /* The data pointer may require personalized delete instructions, we can \
   access those here. */ \
   void (*delete_data)(void *data); \
-  /* The value returned by this function may require personalized delete \
-  instructions, we can access those here. */ \
-  void (*delete_ret)(return_type ret); \
 } definition_name##Closure; \
 \
 /* Calls the inner code. The return value of this may have come from \
@@ -76,17 +73,13 @@ return_type definition_name##_closure_call(definition_name##Closure * const self
   return (self->function)(self->data _EVERY_OTHER(__VA_ARGS__)); \
 } \
 \
-/* Cleans up the value returned by calling this Closure. Do not attempt \
-to free the returned pointer yourself. */ \
-void definition_name##_closure_release_return_value(definition_name##Closure * const self, return_type ret) { \
-  if (self->delete_ret != 0) { \
-    (self->delete_ret)(ret); \
-  } \
-} \
+/* Cleans up the value returned by calling a Rust Closure. Do not attempt \
+to free the returned value yourself. */ \
+void return_type_name##_release_rust_return_value(return_type ret);\
 \
 /* Calls the inner code and cleans up the returned value, if any. */ \
 void definition_name##_closure_call_with_no_return(definition_name##Closure * const self _ARGIFY(__VA_ARGS__)) { \
-  definition_name##_closure_release_return_value(self, definition_name##_closure_call(self _EVERY_OTHER(__VA_ARGS__))); \
+  return_type_name##_release_rust_return_value(definition_name##_closure_call(self _EVERY_OTHER(__VA_ARGS__))); \
 } \
 \
 /* Release data associated with this closure, must be called when done with \

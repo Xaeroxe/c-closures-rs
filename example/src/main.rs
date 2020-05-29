@@ -38,7 +38,7 @@ mod tests {
         unsafe {
             let ret = IntInt_closure_call(&mut closure, 2);
             assert_eq!(ret, 8);
-            IntInt_closure_release_return_value(&mut closure, ret);
+            Int_release_rust_return_value(ret);
             IntInt_closure_release(&mut closure);
         }
     }
@@ -53,11 +53,11 @@ mod tests {
         unsafe {
             let ret = IntInt_closure_call(&mut closure, 2);
             assert_eq!(ret, 12);
-            IntInt_closure_release_return_value(&mut closure, ret);
+            Int_release_rust_return_value(ret);
 
             let ret = IntInt_closure_call(&mut closure, 2);
             assert_eq!(ret, 20);
-            IntInt_closure_release_return_value(&mut closure, ret);
+            Int_release_rust_return_value(ret);
             IntInt_closure_release(&mut closure);
         }
     }
@@ -72,7 +72,7 @@ mod tests {
         unsafe {
             let ret = IntInt_closure_call(&mut closure, 2);
             assert_eq!(ret, 12);
-            IntInt_closure_release_return_value(&mut closure, ret);
+            Int_release_rust_return_value(ret);
 
             // I'd love to verify that a subsequent call aborts, but it's non-trivial
             // to put that into a test suite. We'll address this if it ever becomes a problem
@@ -108,7 +108,7 @@ mod tests {
         unsafe {
             let mut sub_closure = IntVoidClosureFactory_closure_call(&mut closure);
             assert_eq!(IntVoid_closure_call(&mut sub_closure), 4);
-            IntVoidClosureFactory_closure_release_return_value(&mut closure, sub_closure);
+            IntVoidClosure_release_rust_return_value(sub_closure);
         }
     }
 }
