@@ -242,7 +242,7 @@ fn gen_closure_fns(
 
                     unsafe extern "C" fn f_wrapper<F>(f: *mut ::#std_or_core::ffi::c_void, #(#arg_ident_pairs),*) #return_block
                     where
-                        F: FnMut(#(#args),*) -> #return_type,
+                        F: FnMut(#(#args),*) #return_block,
                     {
                         let f = &mut *(f as *mut F);
                         f(#(#arg_idents),*)
@@ -263,7 +263,7 @@ fn gen_closure_fns(
                     /// simultaneously. If that guarantee cannot be upheld, then you should instead use `fn_not_mut`.
                     pub fn fn_mut<Function>(f: Function) -> Self
                     where
-                        Function: FnMut(#(#args),*) -> #return_type,
+                        Function: FnMut(#(#args),*) #return_block,
                     {
                         Self {
                             data: ::#std_or_alloc::boxed::Box::into_raw(::#std_or_alloc::boxed::Box::new(f)) as *mut ::#std_or_core::ffi::c_void,
@@ -278,7 +278,7 @@ fn gen_closure_fns(
                     /// threaded, consider `fn_mut` instead as it permits more robust closures.
                     pub fn fn_not_mut<Function>(f: Function) -> Self
                     where
-                        Function: Fn(#(#args),*) -> #return_type,
+                        Function: Fn(#(#args),*) #return_block,
                     {
                         Self {
                             data: ::#std_or_alloc::boxed::Box::into_raw(::#std_or_alloc::boxed::Box::new(f)) as *mut ::#std_or_core::ffi::c_void,
@@ -293,7 +293,7 @@ fn gen_closure_fns(
                     /// the program will abort. If the `no_std` feature is enabled, instead you'll received zeroed memory.
                     pub fn fn_once<Function>(f: Function) -> Self
                     where
-                        Function: FnOnce(#(#args),*) -> #return_type,
+                        Function: FnOnce(#(#args),*) #return_block,
                     {
                         let mut f = Some(f);
                         Self::fn_mut(move |#(#arg_idents),*| match f.take() {
