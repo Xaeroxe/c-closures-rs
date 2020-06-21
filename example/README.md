@@ -54,21 +54,21 @@ CLOSURE_DEF(IntInt, int, Int, int, p1)
 ``` C
 typedef struct IntIntClosure
 {
-	int(*function)(void *data _ARGIFY(int, p1));
+	int(*function)(void *data int p1);
 	void *data;
 	void(*delete_data)(void *data);
 } IntIntClosure;
 
-int IntInt_closure_call(IntIntClosure *const self _ARGIFY(int, p1))
+int IntInt_closure_call(IntIntClosure *const self int p1)
 {
-	return (self->function)(self->data _EVERY_OTHER(int, p1));
+	return (self->function)(self->data, p1);
 }
 
 void Int_release_rust_return_value(int ret); // Defined in Rust later.
 
-void IntInt_closure_call_with_no_return(IntIntClosure *const self _ARGIFY(int, p1))
+void IntInt_closure_call_with_no_return(IntIntClosure *const self int p1)
 {
-	Int_release_rust_return_value(IntInt_closure_call(self _EVERY_OTHER(int, p1)));
+	Int_release_rust_return_value(IntInt_closure_call(self, p1));
 }
 
 void IntInt_closure_release(IntIntClosure *const self)
