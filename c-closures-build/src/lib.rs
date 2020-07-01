@@ -229,23 +229,27 @@ fn gen_closure_fns(
                         }) {
                             Ok(v) => v,
                             Err(e) => {
-                                eprintln!("c-closures-build: Internal closure panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
+                                // This may also panic. Gotta catch that too.
+                                let _r = std::panic::catch_unwind(::std::panic::AssertUnwindSafe(move || {
+                                    eprintln!("c-closures-build: Internal closure panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
+                                }));
                                 ::std::process::abort()
                             }
                         }
                     }
 
-                    unsafe extern "C" fn drop_my_box<T: ::std::panic::UnwindSafe>(t: *mut ::std::ffi::c_void) {
+                    unsafe extern "C" fn drop_my_box<T>(t: *mut ::std::ffi::c_void) {
                         Self::drop_me(::std::boxed::Box::<T>::from_raw(t as *mut T));
                     }
 
-                    unsafe extern "C" fn drop_me<T: ::std::panic::UnwindSafe>(t: T) {
-                        match ::std::panic::catch_unwind(move || {
-                            ::std::mem::drop(t);
-                        }) {
-                            Ok(v) => v,
+                    unsafe extern "C" fn drop_me<T>(t: T) {
+                        match ::std::panic::catch_unwind(::std::panic::AssertUnwindSafe(move || ::std::mem::drop(t))) {
+                            Ok(()) => (),
                             Err(e) => {
-                                eprintln!("c-closures-build: Internal drop panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
+                                // This may also panic. Gotta catch that too.
+                                let _r = std::panic::catch_unwind(::std::panic::AssertUnwindSafe(move || {
+                                    eprintln!("c-closures-build: Internal drop panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
+                                }));
                                 ::std::process::abort()
                             }
                         }
@@ -259,7 +263,7 @@ fn gen_closure_fns(
                     /// If the internal closure panics the program will abort, unless the `no_std` feature is enabled.
                     pub fn fn_mut<Function>(f: Function) -> Self
                     where
-                        Function: FnMut(#(#args),*) #return_block + ::std::panic::UnwindSafe,
+                        Function: FnMut(#(#args),*) #return_block,
                     {
                         Self {
                             data: ::std::boxed::Box::into_raw(::std::boxed::Box::new(f)) as *mut ::std::ffi::c_void,
@@ -276,7 +280,7 @@ fn gen_closure_fns(
                     /// If the internal closure panics the program will abort, unless the `no_std` feature is enabled.
                     pub fn fn_not_mut<Function>(f: Function) -> Self
                     where
-                        Function: Fn(#(#args),*) #return_block + ::std::panic::UnwindSafe,
+                        Function: Fn(#(#args),*) #return_block,
                     {
                         Self {
                             data: ::std::boxed::Box::into_raw(::std::boxed::Box::new(f)) as *mut ::std::ffi::c_void,
@@ -293,7 +297,7 @@ fn gen_closure_fns(
                     /// If the internal closure panics the program will abort, unless the `no_std` feature is enabled.
                     pub fn fn_once<Function>(f: Function) -> Self
                     where
-                        Function: FnOnce(#(#args),*) #return_block + ::std::panic::UnwindSafe,
+                        Function: FnOnce(#(#args),*) #return_block,
                     {
                         let mut f = Some(f);
                         Self::fn_mut(move |#(#arg_idents),*| match f.take() {
