@@ -198,47 +198,6 @@ fn gen_closure_fns(
         .collect::<Vec<_>>();
     let (has_return_value, return_type) = type_from_output(&signature.output);
 
-    #[cfg(feature = "no_std")]
-    let std_or_core = quote!(core);
-
-    #[cfg(not(feature = "no_std"))]
-    let std_or_core = quote!(std);
-
-    #[cfg(feature = "no_std")]
-    let std_or_alloc = quote!(alloc);
-
-    #[cfg(not(feature = "no_std"))]
-    let std_or_alloc = quote!(std);
-
-    #[cfg(feature = "no_std")]
-    let abort_or_zeroed = quote!(::core::mem::zeroed());
-
-    #[cfg(not(feature = "no_std"))]
-    let abort_or_zeroed = quote! {
-        eprintln!("Function marked as single-use was called more than once, the closure will not be called as that would segfault. Aborting.");
-        ::std::process::abort()
-    };
-
-    #[cfg(feature = "no_std")]
-    let function_body = quote! {
-        let f = &mut *(f as *mut F);
-        f(#(#arg_idents),*)
-    };
-
-    #[cfg(not(feature = "no_std"))]
-    let function_body = quote! {
-        match ::std::panic::catch_unwind(|| {
-            let f = &mut *(f as *mut F);
-            f(#(#arg_idents),*)
-        }) {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("c-closures-build: Internal closure panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
-                ::std::process::abort()
-            }
-        }
-    };
-
     let noop = if has_return_value {
         quote!()
     } else {
@@ -260,20 +219,36 @@ fn gen_closure_fns(
             quote! {
                 impl #closure_name {
 
-                    unsafe extern "C" fn f_wrapper<F>(f: *mut ::#std_or_core::ffi::c_void, #(#arg_ident_pairs),*) #return_block
+                    unsafe extern "C" fn f_wrapper<F>(f: *mut ::std::ffi::c_void, #(#arg_ident_pairs),*) #return_block
                     where
                         F: FnMut(#(#args),*) #return_block,
                     {
-                        #function_body
+                        match ::std::panic::catch_unwind(|| {
+                            let f = &mut *(f as *mut F);
+                            f(#(#arg_idents),*)
+                        }) {
+                            Ok(v) => v,
+                            Err(e) => {
+                                eprintln!("c-closures-build: Internal closure panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
+                                ::std::process::abort()
+                            }
+                        }
                     }
 
-                    unsafe extern "C" fn drop_my_box<T>(t: *mut ::#std_or_core::ffi::c_void) {
-                        // Drop is implicit
-                        ::#std_or_alloc::boxed::Box::<T>::from_raw(t as *mut T);
+                    unsafe extern "C" fn drop_my_box<T: ::std::panic::UnwindSafe>(t: *mut ::std::ffi::c_void) {
+                        Self::drop_me(::std::boxed::Box::<T>::from_raw(t as *mut T));
                     }
 
-                    unsafe extern "C" fn drop_me<T>(_t: T) {
-                        // Drop is implicit
+                    unsafe extern "C" fn drop_me<T: ::std::panic::UnwindSafe>(t: T) {
+                        match ::std::panic::catch_unwind(move || {
+                            ::std::mem::drop(t);
+                        }) {
+                            Ok(v) => v,
+                            Err(e) => {
+                                eprintln!("c-closures-build: Internal drop panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
+                                ::std::process::abort()
+                            }
+                        }
                     }
 
                     /// Transform an FnMut Rust closure into a structure you can pass into a C/C++ library.
@@ -284,10 +259,10 @@ fn gen_closure_fns(
                     /// If the internal closure panics the program will abort, unless the `no_std` feature is enabled.
                     pub fn fn_mut<Function>(f: Function) -> Self
                     where
-                        Function: FnMut(#(#args),*) #return_block,
+                        Function: FnMut(#(#args),*) #return_block + ::std::panic::UnwindSafe,
                     {
                         Self {
-                            data: ::#std_or_alloc::boxed::Box::into_raw(::#std_or_alloc::boxed::Box::new(f)) as *mut ::#std_or_core::ffi::c_void,
+                            data: ::std::boxed::Box::into_raw(::std::boxed::Box::new(f)) as *mut ::std::ffi::c_void,
                             function: Some(Self::f_wrapper::<Function>),
                             delete_data: Some(Self::drop_my_box::<Function>),
                         }
@@ -301,10 +276,10 @@ fn gen_closure_fns(
                     /// If the internal closure panics the program will abort, unless the `no_std` feature is enabled.
                     pub fn fn_not_mut<Function>(f: Function) -> Self
                     where
-                        Function: Fn(#(#args),*) #return_block,
+                        Function: Fn(#(#args),*) #return_block + ::std::panic::UnwindSafe,
                     {
                         Self {
-                            data: ::#std_or_alloc::boxed::Box::into_raw(::#std_or_alloc::boxed::Box::new(f)) as *mut ::#std_or_core::ffi::c_void,
+                            data: ::std::boxed::Box::into_raw(::std::boxed::Box::new(f)) as *mut ::std::ffi::c_void,
                             function: Some(Self::f_wrapper::<Function>),
                             delete_data: Some(Self::drop_my_box::<Function>),
                         }
@@ -318,13 +293,14 @@ fn gen_closure_fns(
                     /// If the internal closure panics the program will abort, unless the `no_std` feature is enabled.
                     pub fn fn_once<Function>(f: Function) -> Self
                     where
-                        Function: FnOnce(#(#args),*) #return_block,
+                        Function: FnOnce(#(#args),*) #return_block + ::std::panic::UnwindSafe,
                     {
                         let mut f = Some(f);
                         Self::fn_mut(move |#(#arg_idents),*| match f.take() {
                             Some(f) => f(#(#arg_idents),*),
                             None => {
-                                #abort_or_zeroed
+                                eprintln!("Function marked as single-use was called more than once, the closure will not be called as that would segfault. Aborting.");
+                                ::std::process::abort()
                             }
                         })
                     }

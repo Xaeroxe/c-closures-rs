@@ -1,6 +1,6 @@
 [package]
 name = "c-closures-build"
-version = "2.0.1"
+version = "3.0.0"
 authors = ["Jacob Kiesel <kieseljake@gmail.com>"]
 edition = "2018"
 repository = "https://github.com/Xaeroxe/c-closures-rs"
@@ -9,9 +9,6 @@ documentation = "https://docs.rs/c-closures-build"
 description = "Generates C/C++ FFI compatible `*Closure` structures from rust closures, useful for cross language functional programming."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[features]
-no_std = []
 
 [dependencies]
 syn = { version = "1.0", features = ["full", "extra-traits"]}
