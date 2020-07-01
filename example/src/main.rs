@@ -110,5 +110,11 @@ mod tests {
             assert_eq!(IntVoid_closure_call(&mut sub_closure), 4);
             IntVoidClosure_release_rust_return_value(sub_closure);
         }
+        // Do it again, just to be sure.
+        unsafe {
+            let mut sub_closure = IntVoidClosureFactory_closure_call(&mut closure);
+            assert_eq!(IntVoid_closure_call(&mut sub_closure), 4);
+            //IntVoidClosure_release_rust_return_value(sub_closure);
+        }
     }
 }

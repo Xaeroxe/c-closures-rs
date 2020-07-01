@@ -219,6 +219,19 @@ fn gen_closure_fns(
         ::std::process::abort()
     };
 
+    #[cfg(feature = "no_std")]
+    let function_body = quote! {
+        f(#(#arg_idents),*)
+    };
+
+    #[cfg(not(feature = "no_std"))]
+    let function_body = quote! {
+        if let Err(e) = ::std::panic::catch_unwind(|| f(#(#arg_idents),*)) {
+            eprintln!("c-closures-build: Internal closure panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
+            ::std::process::abort()
+        }
+    };
+
     let noop = if has_return_value {
         quote!()
     } else {
@@ -245,7 +258,7 @@ fn gen_closure_fns(
                         F: FnMut(#(#args),*) #return_block,
                     {
                         let f = &mut *(f as *mut F);
-                        f(#(#arg_idents),*)
+                        #function_body
                     }
 
                     unsafe extern "C" fn drop_my_box<T>(t: *mut ::#std_or_core::ffi::c_void) {
@@ -261,6 +274,8 @@ fn gen_closure_fns(
                     ///
                     /// This structure currently assumes it will never be called in multiple threads
                     /// simultaneously. If that guarantee cannot be upheld, then you should instead use `fn_not_mut`.
+                    /// 
+                    /// If the internal closure panics the program will abort, unless the `no_std` feature is enabled.
                     pub fn fn_mut<Function>(f: Function) -> Self
                     where
                         Function: FnMut(#(#args),*) #return_block,
@@ -276,6 +291,8 @@ fn gen_closure_fns(
                     ///
                     /// This structure is safe to use in multiple threads simultaneously. If your usage is single
                     /// threaded, consider `fn_mut` instead as it permits more robust closures.
+                    ///
+                    /// If the internal closure panics the program will abort, unless the `no_std` feature is enabled.
                     pub fn fn_not_mut<Function>(f: Function) -> Self
                     where
                         Function: Fn(#(#args),*) #return_block,
@@ -291,6 +308,8 @@ fn gen_closure_fns(
                     ///
                     /// This structure assumes it will only ever be called once. If you attempt to call it more than once
                     /// the program will abort. If the `no_std` feature is enabled, instead you'll received zeroed memory.
+                    ///
+                    /// If the internal closure panics the program will abort, unless the `no_std` feature is enabled.
                     pub fn fn_once<Function>(f: Function) -> Self
                     where
                         Function: FnOnce(#(#args),*) #return_block,
