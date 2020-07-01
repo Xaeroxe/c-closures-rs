@@ -25,7 +25,7 @@ script:
       fi
   - cargo build --verbose --all
   - cargo test --verbose --all
-  - cargo run
+  - cargo run --bin example
 after_success:
   - |
       [ $TRAVIS_BRANCH = master ] &&
