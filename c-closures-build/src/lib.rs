@@ -221,14 +221,21 @@ fn gen_closure_fns(
 
     #[cfg(feature = "no_std")]
     let function_body = quote! {
+        let f = &mut *(f as *mut F);
         f(#(#arg_idents),*)
     };
 
     #[cfg(not(feature = "no_std"))]
     let function_body = quote! {
-        if let Err(e) = ::std::panic::catch_unwind(|| f(#(#arg_idents),*)) {
-            eprintln!("c-closures-build: Internal closure panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
-            ::std::process::abort()
+        match ::std::panic::catch_unwind(|| {
+            let f = &mut *(f as *mut F);
+            f(#(#arg_idents),*)
+        }) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("c-closures-build: Internal closure panicked, this cannot be passed out the FFI boundary, aborting. Error: {:?}", e);
+                ::std::process::abort()
+            }
         }
     };
 
@@ -257,7 +264,6 @@ fn gen_closure_fns(
                     where
                         F: FnMut(#(#args),*) #return_block,
                     {
-                        let f = &mut *(f as *mut F);
                         #function_body
                     }
 
