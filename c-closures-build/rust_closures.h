@@ -53,6 +53,7 @@
 #define _ARGIFY(...) _GET_NTH_ARG(__VA_ARGS__, _ARGIFY32, _ARGIFY31, _ARGIFY30, _ARGIFY29, _ARGIFY28, _ARGIFY27, _ARGIFY26, _ARGIFY25, _ARGIFY24, _ARGIFY23, _ARGIFY22, _ARGIFY21, _ARGIFY20, _ARGIFY19, _ARGIFY18, _ARGIFY17, _ARGIFY16, _ARGIFY15, _ARGIFY14, _ARGIFY13, _ARGIFY12, _ARGIFY11, _ARGIFY10, _ARGIFY9, _ARGIFY8, _ARGIFY7, _ARGIFY6, _ARGIFY5, _ARGIFY4, _ARGIFY3, _ARGIFY2, _ARGIFY1, _ARGIFY0)(__VA_ARGS__)
 
 #define CLOSURE_DEF(definition_name, return_type, return_type_name, ...)  \
+const char ____xpaQBSrQUbNWjnzsGvEgOEjbtPAGJISUDgCbJiUyQWnbqEkYesdTqYoJaKYcHsdRRlZNLPYPCoWBkDZefGQwCilbNJIIsNBeLkKs##definition_name = 0;\
 /* A user defined closure type from C code which can be created in Rust. */ \
 typedef struct definition_name##Closure { \
   /* Directions to call the contained closure */ \
@@ -93,6 +94,7 @@ void definition_name##_closure_release(definition_name##Closure * const self) { 
 }
 
 #define CLOSURE_DEF_VOID_RET(definition_name, ...)  \
+const char ____xpaQBSrQUbNWjnzsGvEgOEjbtPAGJISUDgCbJiUyQWnbqEkYesdTqYoJaKYcHsdRRlZNLPYPCoWBkDZefGQwCilbNJIIsNBeLkKs_##definition_name = 0;\
 /* A user defined closure type from C code which can be created in Rust. */ \
 typedef struct definition_name##Closure { \
   /* Directions to call the contained closure */ \

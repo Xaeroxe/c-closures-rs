@@ -45,7 +45,10 @@ pub fn c_closure_header_include_dir() -> PathBuf {
 
 const SPECIAL_FN_SUFFIX: &str = "_closure_call";
 const SPECIAL_RELEASE_FN_SUFFIX: &str = "_release_rust_return_value";
+// This constant is used to eliminate false positives for the SPECIAL_FN_SUFFIX.
+const HIGH_ENTROPY_FILTER: &str = "____xpaQBSrQUbNWjnzsGvEgOEjbtPAGJISUDgCbJiUyQWnbqEkYesdTqYoJaKYcHsdRRlZNLPYPCoWBkDZefGQwCilbNJIIsNBeLkKs_";
 
+#[derive(Debug)]
 struct ClosureDefinition {
     name: String,
     signature: Signature,
@@ -64,6 +67,7 @@ pub fn enhance_closure_bindings(rust_code: &str) -> String {
     for item in tree.items.iter_mut() {
         let output = call_recurse(item, &mut |item| {
             let mut enhance = vec![];
+            let mut enhance_keep = vec![]; 
             let mut should_omit = false;
             if let Item::ForeignMod(foreigners) = item {
                 let mut new_items = vec![];
@@ -92,9 +96,16 @@ pub fn enhance_closure_bindings(rust_code: &str) -> String {
                 should_omit = new_items.is_empty();
                 foreigners.items = new_items;
             }
+            if let Item::Const(constant) = item {
+                let constant_name = constant.ident.to_string();
+                if constant_name.starts_with(HIGH_ENTROPY_FILTER) {
+                    enhance_keep.push(constant_name[HIGH_ENTROPY_FILTER.len()..].to_string());
+                }
+            }
             if should_omit {
                 None
             } else {
+                //enhance.retain(|e| enhance_keep.contains(&e.name));
                 Some(enhance.iter().flat_map(gen_closure_fns).collect())
             }
         });
