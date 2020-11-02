@@ -52,7 +52,7 @@
 
 #define _ARGIFY(...) _GET_NTH_ARG(__VA_ARGS__, _ARGIFY32, _ARGIFY31, _ARGIFY30, _ARGIFY29, _ARGIFY28, _ARGIFY27, _ARGIFY26, _ARGIFY25, _ARGIFY24, _ARGIFY23, _ARGIFY22, _ARGIFY21, _ARGIFY20, _ARGIFY19, _ARGIFY18, _ARGIFY17, _ARGIFY16, _ARGIFY15, _ARGIFY14, _ARGIFY13, _ARGIFY12, _ARGIFY11, _ARGIFY10, _ARGIFY9, _ARGIFY8, _ARGIFY7, _ARGIFY6, _ARGIFY5, _ARGIFY4, _ARGIFY3, _ARGIFY2, _ARGIFY1, _ARGIFY0)(__VA_ARGS__)
 
-#define CLOSURE_DEF(definition_name, return_type, return_type_name, ...)  \
+#define CLOSURE_DEF_HEAD(definition_name, return_type, return_type_name, ...)  \
 /* A user defined closure type from C code which can be created in Rust. */ \
 typedef struct definition_name##Closure { \
   /* Directions to call the contained closure */ \
@@ -63,7 +63,14 @@ typedef struct definition_name##Closure { \
   access those here. */ \
   void (*delete_data)(void *data); \
 } definition_name##Closure; \
-\
+/* Cleans up the value returned by calling a Rust Closure. Do not attempt \
+to free the returned value yourself. */ \
+void return_type_name##_release_rust_return_value(return_type ret); \
+return_type definition_name##_closure_call(definition_name##Closure * const self _ARGIFY(__VA_ARGS__)); \
+void definition_name##_closure_call_with_no_return(definition_name##Closure * const self _ARGIFY(__VA_ARGS__)); \
+void definition_name##_closure_release(definition_name##Closure * const self);
+
+#define CLOSURE_DEF(definition_name, return_type, return_type_name, ...)  \
 /* Calls the inner code. The return value of this may have come from \
  Rust, meaning you can not free it. However it must be freed. When \
  you're done with the return value, pass it back to Rust with \
@@ -72,10 +79,6 @@ typedef struct definition_name##Closure { \
 return_type definition_name##_closure_call(definition_name##Closure * const self _ARGIFY(__VA_ARGS__))  {\
   return (self->function)(self->data _EVERY_OTHER(__VA_ARGS__)); \
 } \
-\
-/* Cleans up the value returned by calling a Rust Closure. Do not attempt \
-to free the returned value yourself. */ \
-void return_type_name##_release_rust_return_value(return_type ret);\
 \
 /* Calls the inner code and cleans up the returned value, if any. */ \
 void definition_name##_closure_call_with_no_return(definition_name##Closure * const self _ARGIFY(__VA_ARGS__)) { \
@@ -92,7 +95,7 @@ void definition_name##_closure_release(definition_name##Closure * const self) { 
   } \
 }
 
-#define CLOSURE_DEF_VOID_RET(definition_name, ...)  \
+#define CLOSURE_DEF_VOID_RET_HEAD(definition_name, ...)  \
 /* A user defined closure type from C code which can be created in Rust. */ \
 typedef struct definition_name##Closure { \
   /* Directions to call the contained closure */ \
@@ -103,7 +106,10 @@ typedef struct definition_name##Closure { \
   access those here. */ \
   void (*delete_data)(void *data); \
 } definition_name##Closure; \
-\
+void definition_name##_closure_call(definition_name##Closure * const self _ARGIFY(__VA_ARGS__)); \
+void definition_name##_closure_release(definition_name##Closure * const self);
+
+#define CLOSURE_DEF_VOID_RET(definition_name, ...)  \
 /* Calls the inner code. The return value of this may have come from \
  Rust, meaning you can not free it. However it must be freed. When \
  you're done with the return value, pass it back to Rust with \
@@ -123,6 +129,4 @@ void definition_name##_closure_release(definition_name##Closure * const self) { 
   } \
 }
 
-
-CLOSURE_DEF_VOID_RET(VoidVoid, void)
 #endif

@@ -17,47 +17,60 @@ function pointer.
 
 ## C Macros in this crate
 
-First off it's important to understand the two macros provided by
+First off it's important to understand the four macros provided by
 `rust_closures.h` which you'll use in the C/C++ code to define `*Closure`
-signatures. The first is `CLOSURE_DEF` , which is used to define `*Closure`
-types with a non-void return type. It's usage is as such
+signatures. These come in pairs of two, one for your header files, and another for your .c/.cpp files.
+The first is `CLOSURE_DEF` and `CLOSURE_DEF_HEAD` , which is used to define `*Closure`types with a non-void return type. It's usage is as such
 
 ``` C
+// In .c/.cpp file
 CLOSURE_DEF(<SIGNATURE NAME>, <RETURN TYPE>, <RETURN TYPE NAME>, <TYPE OF FIRST CLOSURE ARG>, <NAME OF FIRST CLOSURE ARG>, <..ADDITIONAL ARGS>)
+
+// in .h/.hpp file
+CLOSURE_DEF_HEAD(<SIGNATURE NAME>, <RETURN TYPE>, <RETURN TYPE NAME>, <TYPE OF FIRST CLOSURE ARG>, <NAME OF FIRST CLOSURE ARG>, <..ADDITIONAL ARGS>)
 ```
 
-The first three parameters to this macro are required, subsequent arguments are optional.
+The first three parameters to these macros are required, subsequent arguments are optional.
 
 The return type name is used as the prefix of the function to drop the return value. It should only contain characters legal in a C function name.
 
-The second macro this crate provides is `CLOSURE_DEF_VOID_RET` which is useful
+The second macro pair this crate provides is `CLOSURE_DEF_VOID_RET` and `CLOSURE_DEF_VOID_RET_HEAD` which is useful
 for `*Closure` types you don't actually need anything returned from. It's usage
 is as such
 
 ``` C
+// In .c/.cpp file
 CLOSURE_DEF_VOID_RET(<SIGNATURE NAME>, <TYPE OF FIRST CLOSURE ARG>, <NAME OF FIRST CLOSURE ARG>, <..ADDITIONAL ARGS>)
+
+// In .h/.hpp file
+CLOSURE_DEF_VOID_RET_HEAD(<SIGNATURE NAME>, <TYPE OF FIRST CLOSURE ARG>, <NAME OF FIRST CLOSURE ARG>, <..ADDITIONAL ARGS>)
 ```
 
-The first parameter to this macro is required, subsequent arguments are
-optional. That being said, if you're using this macro without any input
-parameters, consider instead using `VoidVoidClosure` which is defined in
-`rust_closures.h`.
+The first parameter to these macros are required, subsequent arguments are
+optional.
 
 ## Okay, what do I get for it?
 
 Here's the expansion of the macro for a simple signature.
 
 ``` C
+CLOSURE_DEF_HEAD(IntInt, int, Int, int, p1)
 CLOSURE_DEF(IntInt, int, Int, int, p1)
 ```
 
 ``` C
+// CLOSURE_DEF_HEAD
 typedef struct IntIntClosure
 {
 	int(*function)(void *data, int p1);
 	void *data;
 	void(*delete_data)(void *data);
 } IntIntClosure;
+int IntInt_closure_call(IntIntClosure *const self, int p1);
+void IntInt_closure_call_with_no_return(IntIntClosure *const self, int p1);
+void IntInt_closure_release(IntIntClosure *const self);
+
+// CLOSURE_DEF
 
 int IntInt_closure_call(IntIntClosure *const self, int p1)
 {
@@ -85,7 +98,7 @@ void IntInt_closure_release(IntIntClosure *const self)
 So for this expansion you get a struct, called `IntIntClosure`, and four
 functions, three of which are prefixed with the name `IntInt`. One function,
 `*_release_rust_return_value` is left undefined. Rust will define it later.
-If you instead use `CLOSURE_DEF_VOID_RET` then `*_release_rust_return_value`
+If you instead use the `CLOSURE_DEF_VOID_RET` pair then `*_release_rust_return_value`
 and `*_closure_call_with_no_return` are omitted as those functions are
 extraneous for a `void` return type.
 
