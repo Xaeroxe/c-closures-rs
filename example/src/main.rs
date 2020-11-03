@@ -27,7 +27,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
 
     use super::ffi::*;
 
@@ -120,12 +120,14 @@ mod tests {
 
     #[test]
     fn fn_closure_returning_closure_with_data() {
-        let mut y = 0;
+        let y = Arc::new(Mutex::new(0));
         let mut closure = IntVoidClosureFactoryClosure::fn_mut(move || {
-            y += 2;
+            *y.lock().unwrap() += 2;
+            let y = y.clone();
             IntVoidClosure::fn_mut(move || {
-                y += 2;
-                y + 2
+                let mut y = y.lock().unwrap();
+                *y += 2;
+                *y + 2
             })
         });
         unsafe {
@@ -136,7 +138,7 @@ mod tests {
         // Do it again, just to be sure.
         unsafe {
             let mut sub_closure = IntVoidClosureFactory_closure_call(&mut closure);
-            assert_eq!(IntVoid_closure_call(&mut sub_closure), 8);
+            assert_eq!(IntVoid_closure_call(&mut sub_closure), 10);
             IntVoidClosure_release_rust_return_value(sub_closure);
         }
     }
