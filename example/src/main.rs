@@ -114,7 +114,30 @@ mod tests {
         unsafe {
             let mut sub_closure = IntVoidClosureFactory_closure_call(&mut closure);
             assert_eq!(IntVoid_closure_call(&mut sub_closure), 4);
-            //IntVoidClosure_release_rust_return_value(sub_closure);
+            IntVoidClosure_release_rust_return_value(sub_closure);
+        }
+    }
+
+    #[test]
+    fn fn_closure_returning_closure_with_data() {
+        let mut y = 0;
+        let mut closure = IntVoidClosureFactoryClosure::fn_mut(move || {
+            y += 2;
+            IntVoidClosure::fn_mut(move || {
+                y += 2;
+                y + 2
+            })
+        });
+        unsafe {
+            let mut sub_closure = IntVoidClosureFactory_closure_call(&mut closure);
+            assert_eq!(IntVoid_closure_call(&mut sub_closure), 6);
+            IntVoidClosure_release_rust_return_value(sub_closure);
+        }
+        // Do it again, just to be sure.
+        unsafe {
+            let mut sub_closure = IntVoidClosureFactory_closure_call(&mut closure);
+            assert_eq!(IntVoid_closure_call(&mut sub_closure), 8);
+            IntVoidClosure_release_rust_return_value(sub_closure);
         }
     }
 }
