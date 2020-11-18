@@ -9,6 +9,9 @@ matrix:
   fast_finish: true
 cache: cargo
 
+arch:
+    - amd64
+    - arm64
 os:
     - linux
     - osx
