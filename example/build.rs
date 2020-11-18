@@ -20,6 +20,7 @@ fn main() {
         // Unwrap the Result and panic on failure.
         .expect("Unable to generate bindings")
         .to_string();
+    println!("cargo:rerun-if-changed=example.c");
     println!("cargo:rerun-if-changed=example.h");
     let bindings = enhance_closure_bindings(&bindings);
 
